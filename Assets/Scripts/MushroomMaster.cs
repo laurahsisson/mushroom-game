@@ -10,7 +10,7 @@ public class MushroomMaster : MonoBehaviour {
     public Terrain worldTerrain;
 
     private const float WorldWidth = 2000;
-    private const int MushroomCount = 50;
+    private const int MushroomCount = 100;
     private const int LineCount = 3;
     private const float Step = 3;
     private const float HeightOffset =  1f; // Idk the mushrooms arent vertically centered
@@ -75,7 +75,7 @@ public class MushroomMaster : MonoBehaviour {
 
         // diffuse = Shader.Find("Transparent/Diffuse");
 
-        Plane.transform.position = new Vector3(WorldWidth / 2, 30, WorldWidth / 2);
+        Plane.transform.position = new Vector3(WorldWidth / 2, HeightMax*1.25f, WorldWidth / 2);
 
         anchorShrooms = new GameObject[MushroomCount];
         for (int i = 0; i < MushroomCount; i++) {
