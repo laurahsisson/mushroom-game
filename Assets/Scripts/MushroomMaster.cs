@@ -11,7 +11,9 @@ public class MushroomMaster : MonoBehaviour {
 
     private const float WorldWidth = 200;
     private const int MushroomCount = 10;
+    private const int LineCount = 3;
     private const float Step = 3;
+    private const float HeightOffset =  1f; // Idk the mushrooms arent vertically centered
 
     // Higher the value, the noiser the result.
     private float PerlinScaler = 10;
@@ -24,8 +26,6 @@ public class MushroomMaster : MonoBehaviour {
 
     private const float AlphaMin = .75f;
     private const float AlphaMax = 1f;
-
-    private const float LineChance = .05f;
 
     private const float LineDensityMin = 5f;
     private const float LineDensityMax = 10f;
@@ -64,85 +64,97 @@ public class MushroomMaster : MonoBehaviour {
 
         TerrainData worldData = worldTerrain.terrainData;
         worldData.size = new Vector3(WorldWidth, HeightMax, WorldWidth);
-        // int width = worldData.heightmapResolution;
-        // int length = worldData.heightmapResolution;
         resolution = worldData.heightmapResolution;
         heights = worldData.GetHeights(0, 0, resolution, resolution);
         for (int tx = 0; tx < resolution; tx++) {
             for (int ty = 0; ty < resolution; ty++) {
                 heights[tx, ty] = TerrainPositionToHeightFraction(tx, ty);
-                if (tx % 5 == 0 && ty == 0) {
-
-                    Object.Instantiate(MushroomPrefab, TerrainToWorldPosition(tx, ty, heights[tx, ty]), Quaternion.identity);
-                }
             }
         }
-        Debug.Log("FUCK IT TIME TO RAYCAST DOWN FROM POSITION AND GET HEIGHT LOL")
         worldData.SetHeights(0, 0, heights);
-
-
 
         // diffuse = Shader.Find("Transparent/Diffuse");
 
         Plane.transform.position = new Vector3(WorldWidth / 2, 30, WorldWidth / 2);
 
-        // AddMushroom(0,0);
-        // AddMushroom(5,3);
-        // AddMushroom(8,9);
-        // AddMushroom(4,5);
-        // anchorShrooms = new GameObject[MushroomCount];
-        // for (int i = 0; i < MushroomCount; i++) {
-        //     float x = Random.Range(0, WorldWidth);
-        //     float z = Random.Range(0, WorldWidth);
-        //     anchorShrooms[i] = AddMushroom(x, z);
-        // }
+        anchorShrooms = new GameObject[MushroomCount];
+        for (int i = 0; i < MushroomCount; i++) {
+            float x = Random.Range(0, WorldWidth);
+            float z = Random.Range(0, WorldWidth);
+            anchorShrooms[i] = AddMushroom(x, z);
+        }
 
-        // for (int i = 0; i < MushroomCount; i++) {
-        //     for (int j = i + 1; j < MushroomCount; j++) {
-        //         if (Random.value > LineChance) {
-        //             continue;
-        //         }
-        //         GameObject start = anchorShrooms[i];
-        //         GameObject end = anchorShrooms[j];
 
-        //         float dist = Vector3.Distance(start.transform.position, end.transform.position);
-        //         float pos = Random.Range(LineDensityMin, LineDensityMax);;
-        //         while (pos < dist) {
-        //             float t = pos / dist;
-        //             // float x = Mathf.Lerp(start.transform.position.x, end.transform.position.x, t);
-        //             // float z = Mathf.Lerp(start.transform.position.z, end.transform.position.z, t);
-        //             // AddMushroom(x,z);
-        //             // BreedMushroom(start, end, t);
-        //             pos += Random.Range(LineDensityMin, LineDensityMax);
-        //         }
-        //     }
-        // }
+        for (int i = 0; i < MushroomCount; i++) {
+            GameObject start = anchorShrooms[i];
+            
+            HashSet<int> hasLines = new HashSet<int>();
+            for (int lc = 0; lc < LineCount; lc++) {
+                float closestDist = Mathf.Infinity;
+                int closestIdx = -1;
+                // Debug.Log("III"+i+","+lc);
+                
+                for (int j = i+1; j < MushroomCount; j++) {
+                    if (hasLines.Contains(j)) {
+                        continue;
+                    }
+                    GameObject end = anchorShrooms[j];
+                    float dist = Vector3.Distance(start.transform.position,end.transform.position);
+                    Debug.Log("F"+dist+"-"+closestDist);
+                    if (dist < closestDist) {
+                        closestDist = dist;
+                        closestIdx = j;
+                    }
+                }
+                // Debug.Log(i+","+closestIdx);
+                if (closestIdx == -1) {
+                    continue;
+                }
+                AddMushroomLine(i,closestIdx);
+                hasLines.Add(closestIdx);
+            }
+        }
     }
 
-    private float TerrainPositionToHeightFraction(int x, int z) {
-        float xf = ((float)x) / resolution;
-        float zf = ((float)z) / resolution;
+    private void AddMushroomLine(int startidx, int endidx) {
+        GameObject start = anchorShrooms[startidx];
+        GameObject end = anchorShrooms[endidx];
+
+        float dist = Vector3.Distance(start.transform.position, end.transform.position);
+        float pos = Random.Range(LineDensityMin, LineDensityMax);;
+        while (pos < dist) {
+            float t = pos / dist;
+            // float x = Mathf.Lerp(start.transform.position.x, end.transform.position.x, t);
+            // float z = Mathf.Lerp(start.transform.position.z, end.transform.position.z, t);
+            // AddMushroom(x,z);
+            // BreedMushroom(start, end, t);
+            pos += Random.Range(LineDensityMin, LineDensityMax);
+        }
+    }
+
+    private float TerrainPositionToHeightFraction(int tx, int tz) {
+        float xf = ((float)tx) / resolution;
+        float zf = ((float)tz) / resolution;
         float xworld = xf * WorldWidth;
         float zworld = zf * WorldWidth;
         return GetClampedPerlin(0, 1, xworld, zworld, heightOffset);
     }
 
-    private Vector3 TerrainToWorldPosition(int x, int z, float height) {
-        float xf = ((float)x) / resolution;
-        float zf = ((float)z) / resolution;
-        float xworld = xf * WorldWidth;
-        float zworld = zf * WorldWidth;
-        return new Vector3(xworld, height*HeightMax, zworld);
+    private float GetHeight(float x, float z, float size) {
+        RaycastHit hit;
+        bool hadHit = Physics.Raycast(new Vector3(x, HeightMax, z), Vector3.down, out hit);
+        return HeightMax-hit.distance+HeightOffset*size;
     }
 
     private GameObject AddMushroom(float x, float z) {
-        float height = GetClampedPerlin(0, HeightMax, x, z, heightOffset);
+        float size = GetClampedPerlin(SizeMin, SizeMax, x, z, sizeOffset);
+        
+        float height = GetHeight(x,z,size);
         Vector3 position = new Vector3(x, height, z);
         float xr = GetClampedPerlin(-RotationMax, RotationMax, x, z, xRotationOffset);
         float zr = GetClampedPerlin(-RotationMax, RotationMax, x, z, zRotationOffset);
         GameObject mushroom = Object.Instantiate(MushroomPrefab, position, Quaternion.Euler(xr, 0, zr));
 
-        float size = GetClampedPerlin(SizeMin, SizeMax, x, z, sizeOffset);
         mushroom.transform.localScale = new Vector3(size, size, size);
 
         Renderer[] renderers = mushroom.GetComponentsInChildren<Renderer>();
