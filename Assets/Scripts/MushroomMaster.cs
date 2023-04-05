@@ -9,8 +9,8 @@ public class MushroomMaster : MonoBehaviour {
     public Material TerrainMaterial;
     public Terrain worldTerrain;
 
-    private const float WorldWidth = 200;
-    private const int MushroomCount = 10;
+    private const float WorldWidth = 2000;
+    private const int MushroomCount = 50;
     private const int LineCount = 3;
     private const float Step = 3;
     private const float HeightOffset =  1f; // Idk the mushrooms arent vertically centered
@@ -22,7 +22,7 @@ public class MushroomMaster : MonoBehaviour {
     private const float SizeMin = .5f;
     private const float SizeMax = 1.5f;
 
-    private const float HeightMax = 6f;
+    private const float HeightMax = 50f;
 
     private const float AlphaMin = .75f;
     private const float AlphaMax = 1f;
@@ -100,13 +100,11 @@ public class MushroomMaster : MonoBehaviour {
                     }
                     GameObject end = anchorShrooms[j];
                     float dist = Vector3.Distance(start.transform.position,end.transform.position);
-                    Debug.Log("F"+dist+"-"+closestDist);
                     if (dist < closestDist) {
                         closestDist = dist;
                         closestIdx = j;
                     }
                 }
-                // Debug.Log(i+","+closestIdx);
                 if (closestIdx == -1) {
                     continue;
                 }
@@ -124,10 +122,9 @@ public class MushroomMaster : MonoBehaviour {
         float pos = Random.Range(LineDensityMin, LineDensityMax);;
         while (pos < dist) {
             float t = pos / dist;
-            // float x = Mathf.Lerp(start.transform.position.x, end.transform.position.x, t);
-            // float z = Mathf.Lerp(start.transform.position.z, end.transform.position.z, t);
-            // AddMushroom(x,z);
-            // BreedMushroom(start, end, t);
+            float x = Mathf.Lerp(start.transform.position.x, end.transform.position.x, t);
+            float z = Mathf.Lerp(start.transform.position.z, end.transform.position.z, t);
+            BreedMushroom(start, end, t);
             pos += Random.Range(LineDensityMin, LineDensityMax);
         }
     }
@@ -174,13 +171,15 @@ public class MushroomMaster : MonoBehaviour {
         Transform startTrans = start.transform;
         Transform endTrans = end.transform;
 
+        Vector3 scale = Vector3.Lerp(startTrans.localScale, endTrans.localScale, t);
+
         Vector3 pos = Vector3.Lerp(startTrans.position, endTrans.position, t);
-        float height = GetClampedPerlin(0, HeightMax, pos.x, pos.z, heightOffset);
+        float height = GetHeight(pos.x, pos.z, scale.x);
         Vector3 fp = new Vector3(pos.x, height, pos.z);
 
 
         GameObject mushroom = Object.Instantiate(MushroomPrefab, fp, Quaternion.Lerp(startTrans.rotation, endTrans.rotation, t));
-        mushroom.transform.localScale = Vector3.Lerp(startTrans.localScale, endTrans.localScale, t);
+        mushroom.transform.localScale = scale;
 
 
         Color startColor = start.GetComponent<Renderer>().material.GetColor("_Color");
@@ -192,7 +191,6 @@ public class MushroomMaster : MonoBehaviour {
             r.material.SetColor("_Color", color);
             r.material.shader = shader;
         }
-
 
         return mushroom;
     }
